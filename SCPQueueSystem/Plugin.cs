@@ -1,22 +1,18 @@
-﻿using System.Dynamic;
-
-namespace SCPQueueSystem
+﻿namespace SCPQueueSystem
 {
-    
     using System.Collections.Generic;
     using System.Linq;
     using Exiled.API.Features;
     using Exiled.Events.EventArgs;
 
-    public class Plugin: Plugin<Config>
+    public class Plugin : Plugin<Config>
     {
-        
         // Create the dictionary
-        private SortedDictionary<Player, int> scores = new SortedDictionary<Player, int>();
-        
+        public Dictionary<Player, int> scores = new Dictionary<Player, int>();
+
         public override void OnEnabled()
         {
-            Exiled.Events.Handlers.Player.Joined += PlayerOnJoined;
+            scores.OrderBy(kvp => kvp.Value);
             Exiled.Events.Handlers.Server.RoundStarted += ServerOnRoundStarted;
             Exiled.Events.Handlers.Player.Verified += PlayerOnVerified;
             Exiled.Events.Handlers.Map.GeneratorActivated += MapOnGeneratorActivated;
@@ -27,8 +23,19 @@ namespace SCPQueueSystem
 
         private void PlayerOnVerified(VerifiedEventArgs ev)
         {
+            var ordered = scores.OrderBy(kvp => kvp.Value);
+
+            if (!scores.ContainsKey(ev.Player))
+            {
+                scores.Add(ev.Player, 0);
+            }
+
             if (Config.DisplayPlacementOnSpectator)
-                ev.Player.ShowHint($"You have <color=red>{scores[ev.Player]}</color>\nYour placement is <color=red>{new SortedList<Player, int>(scores).IndexOfKey(ev.Player)}</color>", 60f);
+            {
+                ev.Player.ShowHint(
+                    $"You have <color=red>{scores[ev.Player]}</color> tickets\nYour placement is <color=red>{getIndex(ev.Player)}</color>",
+                    10f);
+            }
         }
 
         private void ServerOnRoundEnded(RoundEndedEventArgs ev)
@@ -63,13 +70,17 @@ namespace SCPQueueSystem
 
         private void PlayerOnDied(DiedEventArgs ev)
         {
+
             if (ev.Killer != null)
             {
                 if (ev.Target.IsScp && ev.Target.Role != RoleType.Scp0492)
                 {
                     foreach (KeyValuePair<Player, int> kvp in scores)
                     {
-                        if ((kvp.Key.IsNTF || kvp.Key.Role.Type == RoleType.Scientist) && (ev.Killer.IsNTF || ev.Killer.Role.Type == RoleType.Scientist) || (kvp.Key.IsCHI || kvp.Key.Role.Type == RoleType.ClassD) && (ev.Killer.IsCHI || ev.Killer.Role.Type == RoleType.ClassD))
+                        if ((kvp.Key.IsNTF || kvp.Key.Role.Type == RoleType.Scientist) &&
+                            (ev.Killer.IsNTF || ev.Killer.Role.Type == RoleType.Scientist) ||
+                            (kvp.Key.IsCHI || kvp.Key.Role.Type == RoleType.ClassD) &&
+                            (ev.Killer.IsCHI || ev.Killer.Role.Type == RoleType.ClassD))
                         {
                             Log.Debug($"{kvp.Key.Nickname} rewarded for containing an scp");
                             scores[kvp.Key] += Config.TicketsPerSCPRecontained;
@@ -84,8 +95,9 @@ namespace SCPQueueSystem
             }
 
             if (Config.DisplayPlacementOnSpectator)
-                ev.Target.ShowHint($"You have <color=red>{scores[ev.Target]}</color>\nYour placement is <color=red>{new SortedList<Player, int>(scores).IndexOfKey(ev.Target)}</color>", 60f);
-            
+                ev.Target.ShowHint(
+                    $"You have <color=red>{scores[ev.Target]}</color> tickets\nYour placement is <color=red>{getIndex(ev.Target)}</color>",
+                    10f);
         }
 
         private void ServerOnRoundStarted()
@@ -99,17 +111,22 @@ namespace SCPQueueSystem
             }
         }
 
-        private void PlayerOnJoined(JoinedEventArgs ev)
-        {
-            if (scores.ContainsKey(ev.Player))
-                return;
-            
-            scores.Add(ev.Player, 0);
-        }
-
         public override void OnDisabled()
         {
             scores.Clear();
+        }
+
+        int getIndex(Player plr)
+        {
+            int count = 1;
+            foreach (var kvp in scores)
+            {
+                if (kvp.Key == plr)
+                    return count;    
+                ++count;
+            }
+
+            return 4321;
         }
     }
 }
