@@ -1,29 +1,55 @@
-﻿namespace SCPQueueSystem
+﻿using UnityEngine;
+
+namespace SCPQueueSystem
 {
     using System.Collections.Generic;
     using System.Linq;
     using Exiled.API.Features;
     using Exiled.Events.EventArgs;
+    using System;
+    using MEC;
 
     public class Plugin : Plugin<Config>
     {
         // Create the dictionary
-        public Dictionary<Player, int> scores = new Dictionary<Player, int>();
+        private Dictionary<Player, int> scores = new Dictionary<Player, int>();
 
         public override void OnEnabled()
         {
-            scores.OrderBy(kvp => kvp.Value);
+            scores = scores.OrderBy(kvp => kvp.Value).ToDictionary(key => key.Key, value => value.Value);
             Exiled.Events.Handlers.Server.RoundStarted += ServerOnRoundStarted;
             Exiled.Events.Handlers.Player.Verified += PlayerOnVerified;
             Exiled.Events.Handlers.Map.GeneratorActivated += MapOnGeneratorActivated;
             Exiled.Events.Handlers.Server.RoundEnded += ServerOnRoundEnded;
             Exiled.Events.Handlers.Player.Escaping += PlayerOnEscaping;
             Exiled.Events.Handlers.Player.Died += PlayerOnDied;
+            Exiled.Events.Handlers.Player.ChangingRole += PlayerOnChangingRole;
         }
+
+        private void PlayerOnChangingRole(ChangingRoleEventArgs ev)
+        {
+            Timing.CallDelayed(1f, () =>
+            {
+                if (ev.Player.IsScp)
+                    scores[ev.Player] = 0;
+            });
+        }
+
+
+        public override void OnDisabled()
+        {
+            scores.Clear();
+            Exiled.Events.Handlers.Server.RoundStarted -= ServerOnRoundStarted;
+            Exiled.Events.Handlers.Player.Verified -= PlayerOnVerified;
+            Exiled.Events.Handlers.Map.GeneratorActivated -= MapOnGeneratorActivated;
+            Exiled.Events.Handlers.Server.RoundEnded -= ServerOnRoundEnded;
+            Exiled.Events.Handlers.Player.Escaping -= PlayerOnEscaping;
+            Exiled.Events.Handlers.Player.Died -= PlayerOnDied;
+        }
+
 
         private void PlayerOnVerified(VerifiedEventArgs ev)
         {
-            var ordered = scores.OrderBy(kvp => kvp.Value);
 
             if (!scores.ContainsKey(ev.Player))
             {
@@ -70,7 +96,7 @@
 
         private void PlayerOnDied(DiedEventArgs ev)
         {
-
+            scores = scores.OrderBy(kvp => kvp.Value).ToDictionary(key => key.Key, value => value.Value);
             if (ev.Killer != null)
             {
                 if (ev.Target.IsScp && ev.Target.Role != RoleType.Scp0492)
@@ -102,6 +128,8 @@
 
         private void ServerOnRoundStarted()
         {
+            scores = scores.OrderBy(kvp => kvp.Value).ToDictionary(key => key.Key, value => value.Value);
+            
             foreach (KeyValuePair<Player, int> plr in scores)
             {
                 if (!Player.List.Contains(plr.Key))
@@ -109,13 +137,34 @@
                     scores.Remove(plr.Key);
                 }
             }
-        }
 
-        public override void OnDisabled()
-        {
-            scores.Clear();
-        }
+            Timing.CallDelayed(1f, () =>
+            {
+                Log.Debug("Setting up scps...");
+                foreach (Player plr in Player.List)
+                {
+                    if (plr.IsScp)
+                        plr.SetRole((RoleType) Server.Host.ReferenceHub.characterClassManager.FindRandomIdUsingDefinedTeam(Team.CDP));
+                }
 
+                if (Player.List.Count() > 19)
+                {
+                    setScpsWithBehaviour(4); // Contains that CCM method
+                }
+                else if (Player.List.Count() > 14)
+                {
+                    setScpsWithBehaviour(3);
+                }
+                else if (Player.List.Count() > 7)
+                {
+                    setScpsWithBehaviour(2);
+                }
+                else
+                {
+                    setScpsWithBehaviour(1);
+                }
+            });
+        }
         int getIndex(Player plr)
         {
             int count = 1;
@@ -127,6 +176,39 @@
             }
 
             return 4321;
+        }
+
+        Player getPlayerFromIndex(int value)
+        {
+            int count = 0;
+            foreach (var kvp in scores)
+            {
+                if (count == value)
+                    return kvp.Key;    
+                ++count;
+            }
+
+            throw new NullReferenceException();
+        }
+
+        private void setScpsWithBehaviour(int amountOfPlayers)
+        {
+            for (int x = 0; x < amountOfPlayers; x++)
+            {
+                Player plr = getPlayerFromIndex(x);
+                if (!plr.IsScp)
+                {
+                    plr.SetRole((RoleType) Server.Host.ReferenceHub.characterClassManager.FindRandomIdUsingDefinedTeam(Team.SCP));
+                }
+            }
+        }
+
+        private void printDictionary()
+        {
+            foreach (var kvp in scores)
+            {
+                Log.Debug($"{kvp.Key} | {kvp.Value}");
+            }
         }
     }
 }
