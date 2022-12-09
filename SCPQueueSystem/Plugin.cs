@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-namespace SCPQueueSystem
+﻿namespace SCPQueueSystem
 {
     using System.Collections.Generic;
     using System.Linq;
@@ -8,15 +6,27 @@ namespace SCPQueueSystem
     using Exiled.Events.EventArgs;
     using System;
     using MEC;
-
     public class Plugin : Plugin<Config>
     {
+        // TODO: If dict doesn't work, use https://stackoverflow.com/questions/289/how-do-you-sort-a-dictionary-by-value
         // Create the dictionary
         private Dictionary<Player, int> scores = new Dictionary<Player, int>();
+        private readonly Random rand = new Random();
+
+        private List<RoleType> scps = new List<RoleType>()
+        {
+            RoleType.Scp049,
+            RoleType.Scp079,
+            RoleType.Scp096,
+            RoleType.Scp106,
+            RoleType.Scp173,
+            RoleType.Scp93953,
+            RoleType.Scp93989
+        };
 
         public override void OnEnabled()
         {
-            scores = scores.OrderBy(kvp => kvp.Value).ToDictionary(key => key.Key, value => value.Value);
+            scores = SortDictionary();
             Exiled.Events.Handlers.Server.RoundStarted += ServerOnRoundStarted;
             Exiled.Events.Handlers.Player.Verified += PlayerOnVerified;
             Exiled.Events.Handlers.Map.GeneratorActivated += MapOnGeneratorActivated;
@@ -66,6 +76,20 @@ namespace SCPQueueSystem
 
         private void ServerOnRoundEnded(RoundEndedEventArgs ev)
         {
+            Log.Debug("Clearing scps list...");
+            scps.Clear();
+            scps = new List<RoleType>()
+            {
+                RoleType.Scp049,
+                RoleType.Scp079,
+                RoleType.Scp096,
+                RoleType.Scp106,
+                RoleType.Scp173,
+                RoleType.Scp93953,
+                RoleType.Scp93989
+            };
+            
+            Log.Debug("Adding victory tickets");
             foreach (KeyValuePair<Player, int> kvp in scores)
             {
                 if (kvp.Key.LeadingTeam == ev.LeadingTeam)
@@ -96,7 +120,7 @@ namespace SCPQueueSystem
 
         private void PlayerOnDied(DiedEventArgs ev)
         {
-            scores = scores.OrderBy(kvp => kvp.Value).ToDictionary(key => key.Key, value => value.Value);
+            scores = SortDictionary();
             if (ev.Killer != null)
             {
                 if (ev.Target.IsScp && ev.Target.Role != RoleType.Scp0492)
@@ -115,8 +139,17 @@ namespace SCPQueueSystem
                 }
                 else
                 {
-                    Log.Debug($"{ev.Killer.Nickname} rewarded for a kill");
-                    scores[ev.Killer] += Config.TicketsPerKill;
+                    if (!ev.Killer.IsScp)
+                    {
+                        Log.Debug($"{ev.Killer.Nickname} rewarded for a kill");
+                        scores[ev.Killer] += Config.TicketsPerKill;
+                    }
+                    else if (ev.Killer.Role == RoleType.Scp0492)
+                    {
+                        Log.Debug($"{ev.Killer.Nickname} rewarded for a kill");
+                        scores[ev.Killer] += Config.TicketsPerZombieKill;
+                    }
+                    
                 }
             }
 
@@ -128,7 +161,7 @@ namespace SCPQueueSystem
 
         private void ServerOnRoundStarted()
         {
-            scores = scores.OrderBy(kvp => kvp.Value).ToDictionary(key => key.Key, value => value.Value);
+            scores = SortDictionary();
             
             foreach (KeyValuePair<Player, int> plr in scores)
             {
@@ -198,17 +231,29 @@ namespace SCPQueueSystem
                 Player plr = getPlayerFromIndex(x);
                 if (!plr.IsScp)
                 {
-                    plr.SetRole((RoleType) Server.Host.ReferenceHub.characterClassManager.FindRandomIdUsingDefinedTeam(Team.SCP));
+                    reroll:
+                    RoleType desiredRole = scps[rand.Next(scps.Count)];
+                    if ((desiredRole == RoleType.Scp079 && scps.Count == 7) || desiredRole != RoleType.Scp079)
+                    {
+                        plr.SetRole(desiredRole);
+                        scps.Remove(desiredRole);
+                    }
+                    else
+                        goto reroll;
                 }
             }
         }
 
-        private void printDictionary()
+        private Dictionary<Player, int> SortDictionary()
         {
-            foreach (var kvp in scores)
+            Log.Debug("Sorting...");
+            var ordered = scores.OrderBy(x => x.Value).ToDictionary(pair => pair.Key, pair => pair.Value);
+
+            foreach (var kvp in ordered)
             {
-                Log.Debug($"{kvp.Key} | {kvp.Value}");
+                Log.Debug($"{kvp.Key.Nickname} | {kvp.Value}");
             }
+            return ordered;
         }
     }
 }

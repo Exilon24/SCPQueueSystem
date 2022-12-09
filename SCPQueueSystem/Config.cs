@@ -25,5 +25,8 @@
         
         [Description("How many tickets should a player get for winning")]
         public int TicketsPerWin { get; set; } = 10;
+
+        [Description("How many tickets should a zombie get for killing a player")]
+        public int TicketsPerZombieKill { get; set; } = 8;
     }
 }
