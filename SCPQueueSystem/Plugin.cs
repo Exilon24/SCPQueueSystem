@@ -1,4 +1,6 @@
-﻿namespace SCPQueueSystem
+﻿using System.Collections;
+
+namespace SCPQueueSystem
 {
     using System.Collections.Generic;
     using System.Linq;
@@ -6,11 +8,13 @@
     using Exiled.Events.EventArgs;
     using System;
     using MEC;
+
     public class Plugin : Plugin<Config>
     {
         // TODO: If dict doesn't work, use https://stackoverflow.com/questions/289/how-do-you-sort-a-dictionary-by-value
         // Create the dictionary
-        private Dictionary<Player, int> scores = new Dictionary<Player, int>();
+        private SortedList<int, Player> scores = new SortedList<int, Player>();
+
         private readonly Random rand = new Random();
 
         private List<RoleType> scps = new List<RoleType>()
@@ -26,7 +30,6 @@
 
         public override void OnEnabled()
         {
-            scores = SortDictionary();
             Exiled.Events.Handlers.Server.RoundStarted += ServerOnRoundStarted;
             Exiled.Events.Handlers.Player.Verified += PlayerOnVerified;
             Exiled.Events.Handlers.Map.GeneratorActivated += MapOnGeneratorActivated;
@@ -41,7 +44,9 @@
             Timing.CallDelayed(1f, () =>
             {
                 if (ev.Player.IsScp)
-                    scores[ev.Player] = 0;
+                {
+
+                }
             });
         }
 
@@ -61,15 +66,15 @@
         private void PlayerOnVerified(VerifiedEventArgs ev)
         {
 
-            if (!scores.ContainsKey(ev.Player))
+            if (!scores.ContainsValue(ev.Player))
             {
-                scores.Add(ev.Player, 0);
+                scores.Add(0, ev.Player);
             }
 
             if (Config.DisplayPlacementOnSpectator)
             {
                 ev.Player.ShowHint(
-                    $"You have <color=red>{scores[ev.Player]}</color> tickets\nYour placement is <color=red>{getIndex(ev.Player)}</color>",
+                    $"You have <color=red>{scores.First(x => x.Value == ev.Player).Key}</color> tickets\nYour placement is <color=red>{scores.IndexOfValue(ev.Player)}</color>",
                     10f);
             }
         }
@@ -88,14 +93,15 @@
                 RoleType.Scp93953,
                 RoleType.Scp93989
             };
-            
+
             Log.Debug("Adding victory tickets");
-            foreach (KeyValuePair<Player, int> kvp in scores)
+            foreach (var kvp in scores)
             {
-                if (kvp.Key.LeadingTeam == ev.LeadingTeam)
+                if (kvp.Value.LeadingTeam == ev.LeadingTeam)
                 {
-                    Log.Debug($"{kvp.Key.Nickname} rewarded for winning");
-                    scores[kvp.Key] += Config.TicketsPerWin;
+                    Log.Debug($"{kvp.Value.Nickname} rewarded for winning");
+                    int index = scores.IndexOfValue(kvp.Value);
+                    AddPlayerScore(kvp.Value, Config.TicketsPerWin);
                 }
             }
         }
@@ -103,37 +109,36 @@
         private void PlayerOnEscaping(EscapingEventArgs ev)
         {
             Log.Debug($"{ev.Player.Nickname} rewarded for escaping!");
-            scores[ev.Player] += Config.TicketsPerEscape;
+            AddPlayerScore(ev.Player, Config.TicketsPerWin);
         }
 
         private void MapOnGeneratorActivated(GeneratorActivatedEventArgs ev)
         {
-            foreach (KeyValuePair<Player, int> kvp in scores)
+            foreach (var kvp in scores)
             {
-                if (kvp.Key.IsNTF)
+                if (kvp.Value.IsNTF)
                 {
-                    Log.Debug($"{kvp.Key.Nickname} rewarded for enabling the generator");
-                    scores[kvp.Key] += Config.TicketsPerGeneratorActivated;
+                    Log.Debug($"{kvp.Value.Nickname} rewarded for enabling the generator");
+                    AddPlayerScore(kvp.Value, Config.TicketsPerGeneratorActivated);
                 }
             }
         }
 
         private void PlayerOnDied(DiedEventArgs ev)
         {
-            scores = SortDictionary();
             if (ev.Killer != null)
             {
                 if (ev.Target.IsScp && ev.Target.Role != RoleType.Scp0492)
                 {
-                    foreach (KeyValuePair<Player, int> kvp in scores)
+                    foreach (var kvp in scores)
                     {
-                        if ((kvp.Key.IsNTF || kvp.Key.Role.Type == RoleType.Scientist) &&
+                        if ((kvp.Value.IsNTF || kvp.Value.Role.Type == RoleType.Scientist) &&
                             (ev.Killer.IsNTF || ev.Killer.Role.Type == RoleType.Scientist) ||
-                            (kvp.Key.IsCHI || kvp.Key.Role.Type == RoleType.ClassD) &&
+                            (kvp.Value.IsCHI || kvp.Value.Role.Type == RoleType.ClassD) &&
                             (ev.Killer.IsCHI || ev.Killer.Role.Type == RoleType.ClassD))
                         {
-                            Log.Debug($"{kvp.Key.Nickname} rewarded for containing an scp");
-                            scores[kvp.Key] += Config.TicketsPerSCPRecontained;
+                            Log.Debug($"{kvp.Value.Nickname} rewarded for containing an scp");
+                            AddPlayerScore(kvp.Value, Config.TicketsPerSCPRecontained);
                         }
                     }
                 }
@@ -142,32 +147,30 @@
                     if (!ev.Killer.IsScp)
                     {
                         Log.Debug($"{ev.Killer.Nickname} rewarded for a kill");
-                        scores[ev.Killer] += Config.TicketsPerKill;
+                        AddPlayerScore(ev.Killer, Config.TicketsPerKill);
                     }
                     else if (ev.Killer.Role == RoleType.Scp0492)
                     {
                         Log.Debug($"{ev.Killer.Nickname} rewarded for a kill");
-                        scores[ev.Killer] += Config.TicketsPerZombieKill;
+                        AddPlayerScore(ev.Killer, Config.TicketsPerZombieKill);
                     }
-                    
+
                 }
             }
 
             if (Config.DisplayPlacementOnSpectator)
                 ev.Target.ShowHint(
-                    $"You have <color=red>{scores[ev.Target]}</color> tickets\nYour placement is <color=red>{getIndex(ev.Target)}</color>",
+                    $"You have <color=red>{scores.First(x => x.Value == ev.Target)}</color> tickets\nYour placement is <color=red>{scores.IndexOfValue(ev.Killer)}</color>",
                     10f);
         }
 
         private void ServerOnRoundStarted()
         {
-            scores = SortDictionary();
-            
-            foreach (KeyValuePair<Player, int> plr in scores)
+            foreach (var plr in scores)
             {
-                if (!Player.List.Contains(plr.Key))
+                if (!Player.List.Contains(plr.Value))
                 {
-                    scores.Remove(plr.Key);
+                    scores.Remove(scores.First(x => x.Value == plr.Value).Key);
                 }
             }
 
@@ -177,7 +180,8 @@
                 foreach (Player plr in Player.List)
                 {
                     if (plr.IsScp)
-                        plr.SetRole((RoleType) Server.Host.ReferenceHub.characterClassManager.FindRandomIdUsingDefinedTeam(Team.CDP));
+                        plr.SetRole((RoleType)Server.Host.ReferenceHub.characterClassManager
+                            .FindRandomIdUsingDefinedTeam(Team.CDP));
                 }
 
                 if (Player.List.Count() > 19)
@@ -198,37 +202,13 @@
                 }
             });
         }
-        int getIndex(Player plr)
-        {
-            int count = 1;
-            foreach (var kvp in scores)
-            {
-                if (kvp.Key == plr)
-                    return count;    
-                ++count;
-            }
-
-            return 4321;
-        }
-
-        Player getPlayerFromIndex(int value)
-        {
-            int count = 0;
-            foreach (var kvp in scores)
-            {
-                if (count == value)
-                    return kvp.Key;    
-                ++count;
-            }
-
-            throw new NullReferenceException();
-        }
+        
 
         private void setScpsWithBehaviour(int amountOfPlayers)
         {
             for (int x = 0; x < amountOfPlayers; x++)
             {
-                Player plr = getPlayerFromIndex(x);
+                Player plr = scores[x];
                 if (!plr.IsScp)
                 {
                     reroll:
@@ -244,16 +224,10 @@
             }
         }
 
-        private Dictionary<Player, int> SortDictionary()
+        private void AddPlayerScore(Player plr, int amount)
         {
-            Log.Debug("Sorting...");
-            var ordered = scores.OrderBy(x => x.Value).ToDictionary(pair => pair.Key, pair => pair.Value);
-
-            foreach (var kvp in ordered)
-            {
-                Log.Debug($"{kvp.Key.Nickname} | {kvp.Value}");
-            }
-            return ordered;
+            scores.Remove(scores.First(x => x.Value == plr).Key);
+            scores.Add(scores.First(x => x.Value == plr).Key + Config.TicketsPerWin, plr);
         }
     }
 }
