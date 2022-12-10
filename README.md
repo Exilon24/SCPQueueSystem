@@ -1,4 +1,14 @@
 # SCPQueueSystem
+![Downloads](https://img.shields.io/github/downloads/Exilon24/SCPQueueSystem/total) 
+![Repo size](https://img.shields.io/github/languages/code-size/Exilon24/SCPQueueSystem) 
+![Issues](https://img.shields.io/github/issues/Exilon24/SCPQueueSystem)
+![Commits per day](https://img.shields.io/github/commit-activity/m/Exilon24/SCPQueueSystem)
+![Last commit](https://img.shields.io/github/last-commit/Exilon24/SCPQueueSystem)
+
+![Followers](https://img.shields.io/github/followers/Exilon24?style=social)
+![Forks](https://img.shields.io/github/forks/Exilon24/ShyGuyIsPISSED?style=social)
+![Stars](https://img.shields.io/github/stars/Exilon24/ShyGuyIsPISSED?style=social)
+
 Tired of dogshit luck with getting SCP? well fret not! because this plugin allows you to increase SCP chances next round by performing well on the current round. Even zombers are rewarded handsomely for making daddy proud (Less suicide).
 
 # install
