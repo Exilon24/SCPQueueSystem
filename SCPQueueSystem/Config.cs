@@ -12,7 +12,6 @@
         public bool DisplayPlacementOnSpectator { get; set; } = true;
         
         [Description("Should the current amount of player tickets be shown on join")]
-
         public bool DisplayPlacementOnJoin { get; set; } = true;
         
         [Description("How much tickets should the NTF earn when they activate a generator")]
@@ -27,7 +26,7 @@
         [Description("How many tickets should the team that recontains a SCP earn")]
         public int TicketsPerSCPRecontained { get; set; } = 7;
         
-        [Description("How many tickets should a player get for winning")]
+        [Description("How many tickets should each team member get for winning")]
         public int TicketsPerWin { get; set; } = 10;
 
         [Description("How many tickets should a zombie get for killing a player")]

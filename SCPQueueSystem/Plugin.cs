@@ -112,10 +112,7 @@ namespace SCPQueueSystem
                 {
                     foreach (var kvp in scores)
                     {
-                        if ((kvp.Key.IsNTF || kvp.Key.Role.Type == RoleType.Scientist) &&
-                            (ev.Killer.IsNTF || ev.Killer.Role.Type == RoleType.Scientist) ||
-                            (kvp.Key.IsCHI || kvp.Key.Role.Type == RoleType.ClassD) &&
-                            (ev.Killer.IsCHI || ev.Killer.Role.Type == RoleType.ClassD))
+                        if (kvp.Key.Role.Team == ev.Killer.Role.Team)
                         {
                             scores[kvp.Key] += Config.TicketsPerSCPRecontained;
                         }
