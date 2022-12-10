@@ -4,6 +4,8 @@
 ![Issues](https://img.shields.io/github/issues/Exilon24/SCPQueueSystem?style=for-the-badge)
 ![Commits per day](https://img.shields.io/github/commit-activity/m/Exilon24/SCPQueueSystem?style=for-the-badge)
 ![Last commit](https://img.shields.io/github/last-commit/Exilon24/SCPQueueSystem?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-Exiled--5.0-red?style=for-the-badge)
+
 
 ![Followers](https://img.shields.io/github/followers/Exilon24?style=for-the-badge)
 ![Forks](https://img.shields.io/github/forks/Exilon24/ShyGuyIsPISSED?style=for-the-badge)
