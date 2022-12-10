@@ -1,4 +1,8 @@
-﻿namespace SCPQueueSystem
+﻿using Exiled.API.Enums;
+using Exiled.API.Extensions;
+using UnityEngine;
+
+namespace SCPQueueSystem
 {
     using System.Collections.Generic;
     using System.Linq;
@@ -57,7 +61,7 @@
             if (Config.DisplayPlacementOnSpectator)
             {
                 ev.Player.ShowHint(
-                    $"You have <color=red>{scores[ev.Player]}</color> tickets\nYour placement is <color=red>{getindex(ev.Player)}</color>",
+                    $"You have <color=red>{scores[ev.Player]}</color> tickets\nYour placement is <color=red>{getindex(ev.Player) + 1}</color>",
                     10f);
             }
         }
@@ -78,13 +82,11 @@
             };
 
             Log.Debug("Adding victory tickets");
-            foreach (var kvp in scores)
+            foreach (var plr in Player.List)
             {
-                if (kvp.Key.LeadingTeam == ev.LeadingTeam)
-                {
-                    Log.Debug($"{kvp.Key.Nickname} rewarded for winning");
-                    scores[kvp.Key] += Config.TicketsPerWin;
-                }
+                if (plr.LeadingTeam == ev.LeadingTeam)
+                    scores[plr] += Config.TicketsPerWin;
+
             }
         }
 
@@ -133,8 +135,8 @@
                     }
                     else if (ev.Killer.Role == RoleType.Scp0492)
                     {
-                        Log.Debug($"{ev.Killer.Nickname} rewarded for a kill");
-                        scores[ev.Killer] += Config.TicketsPerKill;
+                        Log.Debug($"{ev.Killer.Nickname} rewarded for a zomboy kill");
+                        scores[ev.Killer] += Config.TicketsPerZombieKill;
                     }
 
                 }
@@ -142,17 +144,19 @@
 
             if (Config.DisplayPlacementOnSpectator)
                 ev.Target.ShowHint(
-                    $"You have <color=red>{scores[ev.Target]}</color> tickets\nYour placement is <color=red>{getindex(ev.Target)}</color>",
+                    $"You have <color=red>{scores[ev.Target]}</color> tickets\nYour placement is <color=red>{getindex(ev.Target) + 1}</color>",
                     10f);
         }
 
         private void ServerOnRoundStarted()
         {
-            foreach (var plr in scores)
+            var orderesScores = new List<KeyValuePair<Player, int>>(scores.OrderByDescending(kvp => kvp.Value));
+            foreach (var plr in orderesScores)
             {
                 if (!Player.List.Contains(plr.Key))
                 {
-                    scores.Remove(scores.First(x => x.Value == plr.Value).Key);
+                    Log.Debug("Removing...");
+                    scores.Remove(plr.Key);
                 }
             }
 
@@ -162,8 +166,7 @@
                 foreach (Player plr in Player.List)
                 {
                     if (plr.IsScp)
-                        plr.SetRole((RoleType)Server.Host.ReferenceHub.characterClassManager
-                            .FindRandomIdUsingDefinedTeam(Team.CDP));
+                        plr.SetRole((RoleType)Server.Host.ReferenceHub.characterClassManager.FindRandomIdUsingDefinedTeam(Team.CDP));
                 }
 
                 if (Player.List.Count() > 19)
@@ -193,6 +196,7 @@
             {
                 if (kvp.Key == plr)
                     return x;
+                ++x;
             }
 
             Log.Error("Player not in list!");
@@ -210,7 +214,7 @@
                 {
                     reroll:
                     RoleType desiredRole = scps[rand.Next(scps.Count)];
-                    if ((desiredRole == RoleType.Scp079 && scps.Count == 7) || desiredRole != RoleType.Scp079)
+                    if ((desiredRole == RoleType.Scp079 && scps.Count < 7) || desiredRole != RoleType.Scp079)
                     {
                         plr.SetRole(desiredRole);
                         scps.Remove(desiredRole);
