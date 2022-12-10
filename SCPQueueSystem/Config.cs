@@ -11,6 +11,10 @@
         [Description("Should the current amount of player tickets be shown on death")]
         public bool DisplayPlacementOnSpectator { get; set; } = true;
         
+        [Description("Should the current amount of player tickets be shown on join")]
+
+        public bool DisplayPlacementOnJoin { get; set; } = true;
+        
         [Description("How much tickets should the NTF earn when they activate a generator")]
         public int TicketsPerGeneratorActivated { get; set; } = 3;
         

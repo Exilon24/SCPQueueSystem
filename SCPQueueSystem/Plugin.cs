@@ -58,17 +58,16 @@ namespace SCPQueueSystem
                 scores.Add(ev.Player, 0);
             }
 
-            if (Config.DisplayPlacementOnSpectator)
+            if (Config.DisplayPlacementOnJoin)
             {
                 ev.Player.ShowHint(
-                    $"You have <color=red>{scores[ev.Player]}</color> tickets\nYour placement is <color=red>{getindex(ev.Player) + 1}</color>",
+                    $"You have <color=red>{scores[ev.Player]}</color> tickets\nYour placement is <color=red>{(getindex(ev.Player) + 1) - Player.List.Count()}</color>",
                     10f);
             }
         }
 
         private void ServerOnRoundEnded(RoundEndedEventArgs ev)
         {
-            Log.Debug("Clearing scps list...");
             scps.Clear();
             scps = new List<RoleType>()
             {
@@ -80,8 +79,7 @@ namespace SCPQueueSystem
                 RoleType.Scp93953,
                 RoleType.Scp93989
             };
-
-            Log.Debug("Adding victory tickets");
+            
             foreach (var plr in Player.List)
             {
                 if (plr.LeadingTeam == ev.LeadingTeam)
@@ -92,7 +90,6 @@ namespace SCPQueueSystem
 
         private void PlayerOnEscaping(EscapingEventArgs ev)
         {
-            Log.Debug($"{ev.Player.Nickname} rewarded for escaping!");
             scores[ev.Player] += Config.TicketsPerEscape;
         }
 
@@ -102,7 +99,6 @@ namespace SCPQueueSystem
             {
                 if (kvp.Key.IsNTF)
                 {
-                    Log.Debug($"{kvp.Key.Nickname} rewarded for enabling the generator");
                     scores[kvp.Key] += Config.TicketsPerGeneratorActivated;
                 }
             }
@@ -121,7 +117,6 @@ namespace SCPQueueSystem
                             (kvp.Key.IsCHI || kvp.Key.Role.Type == RoleType.ClassD) &&
                             (ev.Killer.IsCHI || ev.Killer.Role.Type == RoleType.ClassD))
                         {
-                            Log.Debug($"{kvp.Key.Nickname} rewarded for containing an scp");
                             scores[kvp.Key] += Config.TicketsPerSCPRecontained;
                         }
                     }
@@ -130,12 +125,10 @@ namespace SCPQueueSystem
                 {
                     if (!ev.Killer.IsScp)
                     {
-                        Log.Debug($"{ev.Killer.Nickname} rewarded for a kill");
                         scores[ev.Killer] += Config.TicketsPerKill;
                     }
                     else if (ev.Killer.Role == RoleType.Scp0492)
                     {
-                        Log.Debug($"{ev.Killer.Nickname} rewarded for a zomboy kill");
                         scores[ev.Killer] += Config.TicketsPerZombieKill;
                     }
 
@@ -155,14 +148,12 @@ namespace SCPQueueSystem
             {
                 if (!Player.List.Contains(plr.Key))
                 {
-                    Log.Debug("Removing...");
                     scores.Remove(plr.Key);
                 }
             }
 
             Timing.CallDelayed(1f, () =>
             {
-                Log.Debug("Setting up scps...");
                 foreach (Player plr in Player.List)
                 {
                     if (plr.IsScp)
@@ -198,8 +189,7 @@ namespace SCPQueueSystem
                     return x;
                 ++x;
             }
-
-            Log.Error("Player not in list!");
+            
             return 66934;
         }
         
