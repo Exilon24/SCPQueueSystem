@@ -11,7 +11,7 @@
 ![Forks](https://img.shields.io/github/forks/Exilon24/ShyGuyIsPISSED?style=for-the-badge)
 ![Stars](https://img.shields.io/github/stars/Exilon24/ShyGuyIsPISSED?style=for-the-badge)
 
-Tired of poor luck with getting SCP? well fret not! because this plugin allows you to increase SCP chances next round by performing well on the current round. Even zombers are rewarded handsomely for making daddy proud (Less suicide).
+Tired of poor luck with getting SCP? well fret not! because this plugin allows you to increase SCP chances next round by performing well on the current round. Even zombers are rewarded handsomely for making the doctor proud (Less suicide).
 
 # install
 [Exiled installation page](https://github.com/Exiled-Team/EXILED#installation)
